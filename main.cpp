@@ -5,17 +5,20 @@
 #include <random>
 #include <vector>
 
+using namespace std;
+
 struct grid_element {
     double value;
     double mean;
     double sigma;
 };
 
-int target_x = 0;
-int target_y = 0;
-int grid_size = 0;
+int grid_size = 3;
+int target_x = grid_size-1;
+int target_y = grid_size-1;
 
 std::default_random_engine generator;
+std::vector<std::vector<double>> mean_estimate(grid_size);
 
 double number_generator(double mean, double sigma) {
 	std::normal_distribution<double> distribution(mean, sigma);
@@ -26,46 +29,88 @@ int distance(int i, int j, int k, int l) {
     return abs(i - k) + abs(j - l);
 }
 
-double max(int i, int j, int grid_size, std::vector<std::vector<double>> mat, double estimate) {
+bool atBoundary(int i, int j, int grid_size) {
+    if (i == 0 || i == grid_size - 1 || j == 0 || j == grid_size - 1) {
+        return true;
+    }
+    return false;
+}
 
-    double a[4];
+bool atCorner(int i, int j, int grid_size) {
+    if ((i == 0 && j == 0) || (i == 0 && j == grid_size - 1) || (i == grid_size - 1 && j == 0) || (i == grid_size - 1 && j == grid_size - 1)) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+double max(int i, int j, int grid_size, std::vector<std::vector<double>> mat, std::vector<std::vector<double>> mean_estimate) {
+
     double gamma = 0.0;
-    if (i + 1 >= grid_size) {
-        a[0] = 0;
-    }
-    else {
-        a[0] = gamma*mat[i + 1][j]*distance(i + 1, j, target_x, target_y);
-    }
-    if (i - 1 < 0) {
-        a[2] = 0;
-    }
-    else {
-        a[2] = gamma*mat[i - 1][j]*distance(i - 1, j, target_x, target_y);
-    }
-    if (j + 1 >= grid_size) {
-        a[1] = 0;
-    }
-    else {
-        a[1] = gamma*mat[i][j + 1]*distance(i, j + 1, target_x, target_y);
-    }
-    if (j - 1 < 0) {
-        a[3] = 0;
-    } 
-    else {
-        a[3] = gamma*mat[i][j - 1]*distance(i, j - 1, target_x, target_y);
-    }
+    double beta = 0.0;
+    double sum = 0;
+    double reward = 0;
 
-    double max = 0;
+    bool boundary_element = atBoundary(i, j, grid_size);
 
-    for (int m = 0; m < 4; m++) {
-        a[m] = (estimate + a[m])/distance(i, j, target_x, target_y);
-    }
+    if (boundary_element) {
+        bool corner_element = atCorner(i, j, grid_size);
 
-    for (int m = 0; m < 4; m++) {
-        if (a[m] > max)
-            max = a[m];
+        if (corner_element) {
+            if (i == 0 && j == 0) {
+
+                sum = 0.25*(mean_estimate[0][1] - beta*2 + gamma*mat[0][1] + mean_estimate[1][0] - beta*2 + gamma*mat[1][0]);
+                // cout << "sum: " << sum << endl;
+                return sum;
+            }
+            else if (i == 0 && j == grid_size - 1) {
+                sum = 0.25*(mean_estimate[0][grid_size-2] - beta*grid_size + gamma*mat[0][grid_size-2] + mean_estimate[1][grid_size-1] - beta*grid_size + gamma*mat[1][grid_size-1]);
+                return sum;
+            }
+            else if (i == grid_size - 1 && j == 0) {
+                sum = 0.25*(mean_estimate[grid_size-2][0] - beta*grid_size + gamma*mat[grid_size-2][0] + mean_estimate[grid_size-1][1] - beta*grid_size + gamma*mat[grid_size-1][1]);
+                return sum;
+            }
+            else {
+                sum = 0.25*(mean_estimate[grid_size-2][grid_size-1] - beta*(2*grid_size-2) + gamma*mat[grid_size-2][grid_size-2] + mean_estimate[grid_size-1][grid_size-2]
+                         - beta*(2*grid_size-2) + gamma*mat[grid_size-1][grid_size-2]);
+            }
+        }
+        else {
+            if (i == 0) {
+                sum = 0.25*(mean_estimate[i][j-1] - beta*(j+4) + gamma*mat[i][j-1]) +
+                        0.25*(mean_estimate[i][j+1] - beta*(j+3) + gamma*mat[i][j+1]) + 
+                            0.25*(mean_estimate[i+1][j] - beta*(j+3) + gamma*mat[i+1][j]);
+                return sum;
+            }
+            else if (i == grid_size - 1) {
+                sum = 0.25*(mean_estimate[i][j-1] - beta*(grid_size+j+4) + gamma*mat[i][j-1]) +
+                        0.25*(mean_estimate[i][j+1] - beta*(grid_size+j+3) + gamma*mat[i][j+1]) +
+                            0.25*(mean_estimate[i-1][j] - beta*(grid_size+j+3) + gamma*mat[i-1][j]);
+                return sum;
+            }
+            else if (j == 0) {
+                sum = 0.25*(mean_estimate[i-1][j] - beta*(i+4) + gamma*mat[i-1][j]) +
+                        0.25*(mean_estimate[i+1][j] - beta*(i+3) + gamma*mat[i+1][j]) +
+                            0.25*(mean_estimate[i][j+1] - beta*(i+3) + gamma*mat[i][j+1]);
+                return sum;
+            }
+            else if (j == grid_size - 1) {
+                sum = 0.25*(mean_estimate[i-1][j] - beta*(grid_size+i+4) + gamma*mat[i-1][j]) +
+                        0.25*(mean_estimate[i+1][j] - beta*(grid_size+i+3) + gamma*mat[i+1][j]) +
+                            0.25*(mean_estimate[i][j+1] - beta*(grid_size+i+3) + gamma*mat[i][j+1]);
+                return sum;
+            }
+        }
     }
-    return max;
+    else {
+        sum = 0.25*(mean_estimate[i-1][j] - beta*(i+j+4.33) + gamma*mat[i-1][j]) +
+                0.25*(mean_estimate[i+1][j] - beta*(i+j+3.66) + gamma*mat[i+1][j]) +
+                    0.25*(mean_estimate[i][j-1] - beta*(i+j+4.33) + gamma*mat[i][j-1]) +
+                        0.25*(mean_estimate[i][j+1] - beta*(i+j+3.66) + gamma*mat[i][j+1]);
+        return sum;
+    }
 }
 
 void print(std::vector<std::vector<double>> a) {
@@ -97,23 +142,15 @@ int main() {
     //     }
     // }
 
-    grid[0][0].mean = 0; grid[0][0].sigma = 1;
-    grid[0][1].mean = 4; grid[0][1].sigma = 1;
-    grid[0][2].mean = 8; grid[0][2].sigma = 1;
-    // grid[0][3].mean = 52; grid[0][3].sigma = 1;
-    grid[1][0].mean = 60; grid[1][0].sigma = 1;
-    grid[1][1].mean = 20; grid[1][1].sigma = 1;
-    grid[1][2].mean = 24; grid[1][2].sigma = 1;
-    // grid[1][3].mean = 28; grid[1][3].sigma = 1;
-    grid[2][0].mean = 44; grid[2][0].sigma = 1; 
-    grid[2][1].mean = 36; grid[2][1].sigma = 1;
-    grid[2][2].mean = 40; grid[2][2].sigma = 1;
-    // grid[2][3].mean = 32; grid[2][3].sigma = 1;
-    // grid[3][0].mean = 48; grid[2][2].sigma = 1;
-    // grid[3][1].mean = 12; grid[2][2].sigma = 1;
-    // grid[3][2].mean = 56; grid[2][2].sigma = 1;
-    // grid[3][3].mean = 16; grid[2][2].sigma = 1;
-
+    grid[0][0].mean = 2; grid[0][0].sigma = 0.3;
+    grid[0][1].mean = 10; grid[0][1].sigma = 0.3;
+    grid[0][2].mean = 3; grid[0][2].sigma = 0.3;
+    grid[1][0].mean = 6; grid[1][0].sigma = 0.3;
+    grid[1][1].mean = 5; grid[1][1].sigma = 0.3;
+    grid[1][2].mean = 1; grid[1][2].sigma = 0.3;
+    grid[2][0].mean = 9; grid[2][0].sigma = 0.3; 
+    grid[2][1].mean = 4; grid[2][1].sigma = 0.3;
+    grid[2][2].mean = 8; grid[2][2].sigma = 0.3;
     
     std::vector<std::vector<double>> mean_estimate(grid_size);
     int count = 0;
@@ -141,11 +178,16 @@ int main() {
         for (int i = 0; i < grid_size; i++) {
             mean_estimate[i].resize(grid_size);
             for (int j = 0; j < grid_size; j++) {
-                mean_estimate[i][j] = mean_estimate[i][j] + (grid[i][j].value - mean_estimate[i][j])/count;
+                // if (i == target_x && j == target_y) {
+                //     mean_estimate[i][j] = 0;
+                // }
+                // else {
+                    mean_estimate[i][j] = mean_estimate[i][j] + (grid[i][j].value - mean_estimate[i][j])/count;
+                // }
             }
         }
 
-        std::cout << "mean estimate" << std::endl;
+        std::cout << "MEAN ESTIMATE: " << std::endl;
         print(mean_estimate);
 
         int iterations = 100;
@@ -153,7 +195,12 @@ int main() {
         for (int m = 0; m < iterations; m++) {
             for (int i = 0; i < grid_size; i++) {
                 for (int j = 0; j < grid_size; j++) {
-                    mat_next[i][j] = max(i, j, grid_size, mat_prev, mean_estimate[i][j]);
+                    // if (i == target_x && j == target_y) {
+                    //     mat_next[i][j] = 0;
+                    // }
+                    // else {
+                        mat_next[i][j] = max(i, j, grid_size, mat_prev, mean_estimate);
+                    // }
                 }
             }
             for (int i = 0; i < grid_size; i++) {
@@ -163,7 +210,7 @@ int main() {
             }
         }
 
-        std::cout << "mat prev" << std::endl;
+        std::cout << "MAT PREV: " << std::endl;
         print(mat_prev);
 
     }
