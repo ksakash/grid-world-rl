@@ -47,8 +47,8 @@ bool atCorner(int i, int j, int grid_size) {
 
 double max(int i, int j, int grid_size, std::vector<std::vector<double>> mat, std::vector<std::vector<double>> mean_estimate) {
 
-    double gamma = 0.0;
-    double beta = 0.0;
+    double gamma = 0.2;
+    double beta = 0.7;
     double sum = 0;
     double reward = 0;
 
