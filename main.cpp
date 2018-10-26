@@ -33,10 +33,6 @@ double number_generator(double mean, double sigma) {
     return distribution(generator);   
 }
 
-int distance(int i, int j, int k, int l) {
-    return abs(i - k) + abs(j - l);
-}
-
 bool atBoundary(int i, int j, int grid_size) {
     if (i == 0 || i == grid_size - 1 || j == 0 || j == grid_size - 1) {
         return true;
@@ -539,41 +535,96 @@ void find_path(std::vector<std::vector<double>> value_function, std::vector<std:
     int j = 0;
 
     while (i != target_i || j != target_j) {
+
+        bool boundary_element = atBoundary(i, j, grid_size);
+        if (boundary_element) {
+            bool corner_element = atCorner(i, j, grid_size);
+            if (corner_element) {
+                if (i == 0 && j == 0) {
+                    action_transition_matrix[grid_size*i + j+1][LEFT] = 0;
+                    action_transition_matrix[grid_size*(i+1) + j][UP] = 0;
+                }
+                else if (i == 0 && j == grid_size-1) {
+                    action_transition_matrix[grid_size*(i+1) + j][UP] = 0;
+                    action_transition_matrix[grid_size*i + j-1][RIGHT] = 0;
+                }
+                else if (i == grid_size-1 && j == 0) {
+                    action_transition_matrix[grid_size*(i-1) + j][DOWN] = 0;
+                    action_transition_matrix[grid_size*i + j+1][LEFT] = 0;
+                }
+                else if (i == grid_size-1 && j == grid_size-1) {
+                    action_transition_matrix[grid_size*(i-1) + j][DOWN] = 0;
+                    action_transition_matrix[grid_size*i + j-1][RIGHT] = 0;
+                }
+            }
+            else {
+                if (i == 0) {
+                    action_transition_matrix[grid_size*i + j+1][LEFT] = 0;
+                    action_transition_matrix[grid_size*(i+1) + j][UP] = 0;
+                    action_transition_matrix[grid_size*(i) + j-1][RIGHT] = 0;
+                }
+                else if (i == grid_size-1) {
+                    action_transition_matrix[grid_size*i + j+1][LEFT] = 0;
+                    action_transition_matrix[grid_size*(i-1) + j][DOWN] = 0;
+                    action_transition_matrix[grid_size*(i) + j-1][RIGHT] = 0;
+                }
+                else if (j == 0) {
+                    action_transition_matrix[grid_size*i + j+1][LEFT] = 0;
+                    action_transition_matrix[grid_size*(i-1) + j][DOWN] = 0;
+                    action_transition_matrix[grid_size*(i+1) + j][UP] = 0;
+                }
+                else if (j == grid_size-1) {
+                    action_transition_matrix[grid_size*i + j-1][RIGHT] = 0;
+                    action_transition_matrix[grid_size*(i-1) + j][DOWN] = 0;
+                    action_transition_matrix[grid_size*(i+1) + j][UP] = 0;
+                }
+            }
+        }
+        else {
+            action_transition_matrix[grid_size*i + j-1][RIGHT] = 0;
+            action_transition_matrix[grid_size*(i-1) + j][DOWN] = 0;
+            action_transition_matrix[grid_size*(i+1) + j][UP] = 0;
+            action_transition_matrix[grid_size*i + j+1][LEFT] = 0;
+        }
+
         double max = 0;
         int action = -1;
-        int k;
         for (int k = 0; k < 4; k++) {
             if (action_transition_matrix[grid_size*i + j][k] == 1) {
                 if (k == LEFT) {
                     if (value_function[i][j-1] > max) {
                         max = value_function[i][j-1];
+                        action = k;
                     }
                 }
                 else if (k == RIGHT) {
                     if (value_function[i][j+1] > max) {
                         max = value_function[i][j+1];
+                        action = k;
                     }
                 }
                 else if (k == UP) {
                     if (value_function[i-1][j] > max) {
                         max = value_function[i-1][j];
+                        action = k;
                     }
                 }
                 else {
                     if (value_function[i+1][j] > max) {
                         max = value_function[i+1][j];
+                        action = k;
                     }
                 }
             }
         }
-        path[i][j] = k;
-        if (k == LEFT) {
+        path[i][j] = action;
+        if (action == LEFT) {
             j--;
         }
-        else if (k == RIGHT) {
+        else if (action == RIGHT) {
             j++;
         }
-        else if (k == UP) {
+        else if (action == UP) {
             i--;
         }
         else {
@@ -678,7 +729,18 @@ int main() {
             }
         }
 
+        initialize_action_matrix(action_transition_matrix);
         find_path(value_function, path);
+
+        std::cout << "PATH: " << std::endl;
+        std::cout << "----------------------------" << std::endl;
+        for (int i = 0; i < grid_size; i++) {
+            for (int j = 0; j < grid_size; j++) {
+                std::cout << "| " << path[i][j] << " ";
+            }
+            std::cout << "|" << std::endl;
+            std::cout << "----------------------------" << std::endl;
+        }
     }
     return 0;
 }
