@@ -4,6 +4,7 @@
 #include <map>
 #include <random>
 #include <vector>
+#include <fstream>
 
 #define UP 0
 #define DOWN 1
@@ -530,7 +531,7 @@ void initialize_action_matrix(int action_transition_matrix[][4]) {
     }
 }
 
-void find_path(std::vector<std::vector<double>> value_function, std::vector<std::vector<int>>& path) {
+void find_path(std::vector<std::vector<double>> value_function, std::vector<int>& path) {
     int i = 0;
     int j = 0;
 
@@ -617,7 +618,7 @@ void find_path(std::vector<std::vector<double>> value_function, std::vector<std:
                 }
             }
         }
-        path[i][j] = action;
+        path.push_back(action);
         if (action == LEFT) {
             j--;
         }
@@ -636,9 +637,8 @@ void find_path(std::vector<std::vector<double>> value_function, std::vector<std:
 int main() {
 
     // std::cin >> grid_size;
-    int episode_count = 0;
+    int episode_count = 1;
     // std::cin >> episode_count;
-    episode_count = 1;
     std::vector<std::vector<grid_element>> grid(grid_size);
 
     for (int i = 0; i < grid_size; i++) {
@@ -697,8 +697,8 @@ int main() {
             }
         }
 
-        std::cout << "MEAN ESTIMATE: " << std::endl;
-        print(mean_estimate);
+        // std::cout << "MEAN ESTIMATE: " << std::endl;
+        // print(mean_estimate);
 
         std::vector<std::vector<double>> value_function(grid_size);
 
@@ -709,38 +709,58 @@ int main() {
         
         max(0, 0, value_function, action_transition_matrix, mean_estimate, 0);
 
-        std::cout << "VALUE FUNCTION: " << std::endl;
+        // std::cout << "VALUE FUNCTION: " << std::endl;
 
-        std::cout << "----------------------------" << std::endl;
-        for (int i = 0; i < grid_size; i++) {
-            for (int j = 0; j < grid_size; j++) {
-                std::cout << "| " << value_function[i][j] << " ";
-            }
-            std::cout << "|" << std::endl;
-            std::cout << "----------------------------" << std::endl;
-        }
+        // std::cout << "----------------------------" << std::endl;
+        // for (int i = 0; i < grid_size; i++) {
+        //     for (int j = 0; j < grid_size; j++) {
+        //         std::cout << "| " << value_function[i][j] << " ";
+        //     }
+        //     std::cout << "|" << std::endl;
+        //     std::cout << "----------------------------" << std::endl;
+        // }
 
-        std::vector<std::vector<int>> path(grid_size);
+        std::vector<int> path;
 
-        for (int i = 0; i < grid_size; i++) {
-            path[i].resize(grid_size);
-            for (int j = 0; j < grid_size; j++) {
-                path[i][j] = -1;
-            }
-        }
+        // for (int i = 0; i < grid_size; i++) {
+        //     path[i].resize(grid_size);
+        //     for (int j = 0; j < grid_size; j++) {
+        //         path[i][j] = -1;
+        //     }
+        // }
+
+        std::ofstream f;
+        f.open("/home/ironman/grid-world-rl/results.txt");
 
         initialize_action_matrix(action_transition_matrix);
         find_path(value_function, path);
 
-        std::cout << "PATH: " << std::endl;
-        std::cout << "----------------------------" << std::endl;
-        for (int i = 0; i < grid_size; i++) {
-            for (int j = 0; j < grid_size; j++) {
-                std::cout << "| " << path[i][j] << " ";
+        if (f.is_open()) {
+            f << grid_size << endl;
+            for (int i = 0; i < grid_size; i++) {
+                for (int j = 0; j < grid_size; j++) {
+                    f << mean_estimate[i][j] << " "; 
+                }
+                f << endl;
             }
-            std::cout << "|" << std::endl;
-            std::cout << "----------------------------" << std::endl;
+            for (int i = 0; i < path.size(); i++) {
+                f << path[i] << " ";
+            }
+            f << endl;
         }
+        else {
+            cout << "unable to open the file" << endl;
+        }
+
+        // std::cout << "PATH: " << std::endl;
+        // std::cout << "----------------------------" << std::endl;
+        // for (int i = 0; i < grid_size; i++) {
+        //     for (int j = 0; j < grid_size; j++) {
+        //         std::cout << "| " << path[i][j] << " ";
+        //     }
+        //     std::cout << "|" << std::endl;
+        //     std::cout << "----------------------------" << std::endl;
+        // }
     }
     return 0;
 }

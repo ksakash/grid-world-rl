@@ -1,0 +1,6 @@
+// grid-size
+// start coordinates - must be the corners
+// end coordinates - must be the corners
+// no. of episodes
+// matrix of the mean
+// matrix of the standard deviation
