@@ -19,7 +19,11 @@ struct grid_element {
     double sigma;
 };
 
-int grid_size = 4;
+int grid_size;
+int episode_count;
+
+int start_i;
+int start_j;
 
 int target_i;
 int target_j;
@@ -27,7 +31,8 @@ int target_j;
 int action_transition_matrix[16][4];
 
 std::default_random_engine generator;
-std::vector<std::vector<double>> mean_estimate(grid_size);
+std::vector<std::vector<double>> mean_estimate;
+std::vector<std::vector<grid_element>> grid;
 
 double number_generator(double mean, double sigma) {
 	std::normal_distribution<double> distribution(mean, sigma);
@@ -634,43 +639,117 @@ void find_path(std::vector<std::vector<double>> value_function, std::vector<int>
     }
 }
 
+void stringToInt (string s, std::vector<double>& arr) {
+    for (int i = 0; i < s.length(); i++) {
+        string n = "";
+        while (s[i] != ' ' && i != s.length()) {
+            n.push_back(s[i]);
+            i++;
+        }
+        // if (s.length() == 1) {
+        //     n.push_back(s[i]);
+        // }
+        // cout << "ehst" << endl;
+        // cout << "n: " << n << endl;
+        double t = std::stof(n);
+        arr.push_back(t);
+    }
+}
+
+void processInput (string str) {
+
+    string line;
+    ifstream myfile (str);
+    if (myfile.is_open())
+    {
+        getline (myfile, line);
+        // cout << "first line: " << line << endl;
+        std::vector<double> numbers;
+        stringToInt(line, numbers);
+        grid_size = numbers[0];
+
+        mean_estimate.resize(grid_size);
+        grid.resize(grid_size);
+
+        numbers.clear();
+        getline (myfile, line);
+        // cout << "second line: " << line << endl;
+        stringToInt(line, numbers);
+        // cout << "what the fuck" << endl;
+        start_i = numbers[0];
+        start_j = numbers[1];
+
+        numbers.clear();
+        getline (myfile, line);
+        // cout << "third line: " << line << endl;
+        stringToInt(line, numbers);
+        target_i = numbers[0];
+        target_j = numbers[1];
+
+        numbers.clear();
+        getline (myfile, line);
+        stringToInt(line, numbers);
+        episode_count = numbers[0];
+
+        for (int i = 0; i < grid_size; i++) {
+            numbers.clear();
+            getline (myfile, line);
+            stringToInt(line, numbers);
+            grid[i].resize(grid_size);     
+            for (int j = 0; j < grid_size; j++) {
+                grid[i][j].mean = numbers[j];
+            }
+        }
+
+        for (int i = 0; i < grid_size; i++) {
+            numbers.clear();
+            getline (myfile, line);
+            stringToInt(line, numbers);
+            for (int j = 0; j < grid_size; j++) {
+                grid[i][j].sigma = numbers[j];
+            }
+        }
+
+        myfile.close();
+    }
+    else cout << "Unable to open file"; 
+}
+
 int main() {
 
-    // std::cin >> grid_size;
-    int episode_count = 1;
-    // std::cin >> episode_count;
-    std::vector<std::vector<grid_element>> grid(grid_size);
+    // target_i = 3;
+    // target_j = 3;
 
-    for (int i = 0; i < grid_size; i++) {
-        grid[i].resize(grid_size);
-    }
+    processInput("/home/ironman/grid-world-rl/inputs.txt");
 
-    target_i = 3;
-    target_j = 3;
+    // cout << "grid size: " << grid_size << endl;
+    // cout << "start_i: " << start_i << " start_j: " << start_j << endl;
+    // cout << "target_i: " << target_i << " target_j: " << target_j << endl;
+    // cout << "episode_count: " << episode_count << endl;
 
     initialize_action_matrix(action_transition_matrix);
 
-    grid[0][0].mean = 7; grid[0][0].sigma = 0.3;
-    grid[0][1].mean = 8; grid[0][1].sigma = 0.3;
-    grid[0][2].mean = 16; grid[0][2].sigma = 0.3;
-    grid[0][3].mean = 19; grid[0][3].sigma = 0.3;
+    // grid[0][0].mean = 7; grid[0][0].sigma = 0.3;
+    // grid[0][1].mean = 8; grid[0][1].sigma = 0.3;
+    // grid[0][2].mean = 16; grid[0][2].sigma = 0.3;
+    // grid[0][3].mean = 19; grid[0][3].sigma = 0.3;
 
-    grid[1][0].mean = 6; grid[1][0].sigma = 0.3;
-    grid[1][1].mean = 5; grid[1][1].sigma = 0.3;
-    grid[1][2].mean = 6; grid[1][2].sigma = 0.3;
-    grid[1][3].mean = 18; grid[1][3].sigma = 0.3;
+    // grid[1][0].mean = 6; grid[1][0].sigma = 0.3;
+    // grid[1][1].mean = 5; grid[1][1].sigma = 0.3;
+    // grid[1][2].mean = 6; grid[1][2].sigma = 0.3;
+    // grid[1][3].mean = 18; grid[1][3].sigma = 0.3;
 
-    grid[2][0].mean = 7; grid[2][0].sigma = 0.3; 
-    grid[2][1].mean = 10; grid[2][1].sigma = 0.3;
-    grid[2][2].mean = 1; grid[2][2].sigma = 0.3;
-    grid[2][3].mean = 3; grid[2][3].sigma = 0.3;
+    // grid[2][0].mean = 7; grid[2][0].sigma = 0.3; 
+    // grid[2][1].mean = 10; grid[2][1].sigma = 0.3;
+    // grid[2][2].mean = 1; grid[2][2].sigma = 0.3;
+    // grid[2][3].mean = 3; grid[2][3].sigma = 0.3;
 
-    grid[3][0].mean = 4; grid[3][0].sigma = 0.3;
-    grid[3][1].mean = 2; grid[3][1].sigma = 0.3;
-    grid[3][2].mean = 11; grid[3][2].sigma = 0.3;
-    grid[3][3].mean = 17; grid[3][3].sigma = 0.3;
+    // grid[3][0].mean = 4; grid[3][0].sigma = 0.3;
+    // grid[3][1].mean = 2; grid[3][1].sigma = 0.3;
+    // grid[3][2].mean = 11; grid[3][2].sigma = 0.3;
+    // grid[3][3].mean = 17; grid[3][3].sigma = 0.3;
 
-    std::vector<std::vector<double>> mean_estimate(grid_size);
+    // std::vector<std::vector<double>> mean_estimate(grid_size);
     int count = 0;
 
     std::vector<std::vector<double>> mat_prev(grid_size);
