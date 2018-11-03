@@ -28,11 +28,10 @@ int start_j;
 int target_i;
 int target_j;
 
-int action_transition_matrix[16][4];
-
 std::default_random_engine generator;
 std::vector<std::vector<double>> mean_estimate;
 std::vector<std::vector<grid_element>> grid;
+std::vector<std::vector<int>> action_transition_matrix;
 
 double number_generator(double mean, double sigma) {
 	std::normal_distribution<double> distribution(mean, sigma);
@@ -62,7 +61,7 @@ double maximum(double a, double b) {
         return b;
 }
 
-void copy_action_matrices(int mat1[][4], int mat2[][4]) {
+void copy_action_matrices(std::vector<std::vector<int>>& mat1, std::vector<std::vector<int>>& mat2) {
     for (int i = 0; i < grid_size*grid_size; i++) {
         for (int j = 0; j < 4; j++) {
             mat1[i][j] = mat2[i][j];
@@ -70,14 +69,14 @@ void copy_action_matrices(int mat1[][4], int mat2[][4]) {
     }
 }
 
-double max(int i, int j, std::vector<std::vector<double>>& value_function, int mat[][4], std::vector<std::vector<double>> mean_estimate, int distance) {
+double max(int i, int j, std::vector<std::vector<double>>& value_function, std::vector<std::vector<int>>& mat, std::vector<std::vector<double>> mean_estimate, int distance) {
 
     double gamma = 0.5;
     double beta = 0.7;
     
-    int mat1[grid_size*grid_size][4];
-    int mat2[grid_size*grid_size][4];
-    int mat4[grid_size*grid_size][4];
+    std::vector<std::vector<int>> mat1(grid_size*grid_size, std::vector<int>(4));
+    std::vector<std::vector<int>> mat2(grid_size*grid_size, std::vector<int>(4));
+    std::vector<std::vector<int>> mat4(grid_size*grid_size, std::vector<int>(4));
 
     copy_action_matrices(mat1, mat);
     copy_action_matrices(mat2, mat);
@@ -203,7 +202,7 @@ double max(int i, int j, std::vector<std::vector<double>>& value_function, int m
             }
         }
         else {
-            int mat3[grid_size*grid_size][4];
+            std::vector<std::vector<int>> mat3(grid_size*grid_size, std::vector<int>(4));
             copy_action_matrices(mat3, mat);
 
             if (j == 0) {
@@ -363,8 +362,8 @@ double max(int i, int j, std::vector<std::vector<double>>& value_function, int m
         }
     }
     else {
-        int mat3[grid_size*grid_size][4];
-        int mat4[grid_size*grid_size][4];
+        std::vector<std::vector<int>> mat3(grid_size*grid_size, std::vector<int>(4));
+        std::vector<std::vector<int>> mat4(grid_size*grid_size, std::vector<int>(4));
 
         copy_action_matrices(mat3, mat);
         copy_action_matrices(mat4, mat);
@@ -426,7 +425,7 @@ void print(std::vector<std::vector<double>> a) {
     }
 }
 
-void initialize_action_matrix(int action_transition_matrix[][4]) {
+void initialize_action_matrix(std::vector<std::vector<int>>& action_transition_matrix) {
 
     for (int i = 0; i < grid_size; i++) {
         for (int j = 0; j < grid_size; j++) {
@@ -542,6 +541,8 @@ void find_path(std::vector<std::vector<double>> value_function, std::vector<int>
 
     while (i != target_i || j != target_j) {
 
+        cout << "Inside find_path, i: " << i << ", j: " << j << endl;
+
         bool boundary_element = atBoundary(i, j, grid_size);
         if (boundary_element) {
             bool corner_element = atCorner(i, j, grid_size);
@@ -623,6 +624,28 @@ void find_path(std::vector<std::vector<double>> value_function, std::vector<int>
                 }
             }
         }
+        if (action == -1) {
+            cout << "Invalid Path" << endl;
+            if (path[path.size()-1] == LEFT) {
+                j++;
+                action_transition_matrix[grid_size*i + j][LEFT] = 0;
+            }
+            else if (path[path.size()-1] == RIGHT) {
+                j--;
+                action_transition_matrix[grid_size*i + j][RIGHT] = 0;
+            }
+            else if (path[path.size()-1] == UP) {
+                i++;
+                action_transition_matrix[grid_size*i + j][UP] = 0;
+            }
+            else if (path[path.size()-1] == DOWN) {
+                i--;
+                action_transition_matrix[grid_size*i + j][DOWN] = 0;
+            }
+            path.pop_back();
+            cout << "shifted to i: " << i << " j: " << j << endl;
+            continue;
+        }
         path.push_back(action);
         if (action == LEFT) {
             j--;
@@ -646,11 +669,6 @@ void stringToInt (string s, std::vector<double>& arr) {
             n.push_back(s[i]);
             i++;
         }
-        // if (s.length() == 1) {
-        //     n.push_back(s[i]);
-        // }
-        // cout << "ehst" << endl;
-        // cout << "n: " << n << endl;
         double t = std::stof(n);
         arr.push_back(t);
     }
@@ -663,7 +681,6 @@ void processInput (string str) {
     if (myfile.is_open())
     {
         getline (myfile, line);
-        // cout << "first line: " << line << endl;
         std::vector<double> numbers;
         stringToInt(line, numbers);
         grid_size = numbers[0];
@@ -673,15 +690,12 @@ void processInput (string str) {
 
         numbers.clear();
         getline (myfile, line);
-        // cout << "second line: " << line << endl;
         stringToInt(line, numbers);
-        // cout << "what the fuck" << endl;
         start_i = numbers[0];
         start_j = numbers[1];
 
         numbers.clear();
         getline (myfile, line);
-        // cout << "third line: " << line << endl;
         stringToInt(line, numbers);
         target_i = numbers[0];
         target_j = numbers[1];
@@ -713,52 +727,29 @@ void processInput (string str) {
         myfile.close();
     }
     else cout << "Unable to open file"; 
+
+    cout << "Inputs processed successfully" << endl;
 }
 
 int main() {
 
-    // target_i = 3;
-    // target_j = 3;
-
     processInput("/home/ironman/grid-world-rl/inputs.txt");
 
-    // cout << "grid size: " << grid_size << endl;
-    // cout << "start_i: " << start_i << " start_j: " << start_j << endl;
-    // cout << "target_i: " << target_i << " target_j: " << target_j << endl;
-    // cout << "episode_count: " << episode_count << endl;
+    cout << "grid size: " << grid_size << endl;
+    cout << "start_i: " << start_i << " start_j: " << start_j << endl;
+    cout << "target_i: " << target_i << " target_j: " << target_j << endl;
+    cout << "episode_count: " << episode_count << endl;
+
+    action_transition_matrix.resize(grid_size*grid_size, std::vector<int>(4));
 
     initialize_action_matrix(action_transition_matrix);
 
-    // grid[0][0].mean = 7; grid[0][0].sigma = 0.3;
-    // grid[0][1].mean = 8; grid[0][1].sigma = 0.3;
-    // grid[0][2].mean = 16; grid[0][2].sigma = 0.3;
-    // grid[0][3].mean = 19; grid[0][3].sigma = 0.3;
+    cout << "Intialised the action matrix successfully" << endl;
 
-    // grid[1][0].mean = 6; grid[1][0].sigma = 0.3;
-    // grid[1][1].mean = 5; grid[1][1].sigma = 0.3;
-    // grid[1][2].mean = 6; grid[1][2].sigma = 0.3;
-    // grid[1][3].mean = 18; grid[1][3].sigma = 0.3;
-
-    // grid[2][0].mean = 7; grid[2][0].sigma = 0.3; 
-    // grid[2][1].mean = 10; grid[2][1].sigma = 0.3;
-    // grid[2][2].mean = 1; grid[2][2].sigma = 0.3;
-    // grid[2][3].mean = 3; grid[2][3].sigma = 0.3;
-
-    // grid[3][0].mean = 4; grid[3][0].sigma = 0.3;
-    // grid[3][1].mean = 2; grid[3][1].sigma = 0.3;
-    // grid[3][2].mean = 11; grid[3][2].sigma = 0.3;
-    // grid[3][3].mean = 17; grid[3][3].sigma = 0.3;
-
-    // std::vector<std::vector<double>> mean_estimate(grid_size);
     int count = 0;
 
-    std::vector<std::vector<double>> mat_prev(grid_size);
-    std::vector<std::vector<double>> mat_next(grid_size);
-
-    for (int i = 0; i < grid_size; i++) {
-        mat_next[i].resize(grid_size);
-        mat_prev[i].resize(grid_size);
-    }
+    std::vector<std::vector<double>> mat_prev(grid_size, std::vector<double>(grid_size));
+    std::vector<std::vector<double>> mat_next(grid_size, std::vector<double>(grid_size));
 
     for (int i = 0; i < episode_count; i++) {
         count++;
@@ -776,43 +767,26 @@ int main() {
             }
         }
 
-        // std::cout << "MEAN ESTIMATE: " << std::endl;
-        // print(mean_estimate);
-
-        std::vector<std::vector<double>> value_function(grid_size);
-
-
-        for (int i = 0; i < grid_size; i++) {
-            value_function[i].resize(grid_size);
-        }
+        std::vector<std::vector<double>> value_function(grid_size, std::vector<double>(grid_size));
         
         max(0, 0, value_function, action_transition_matrix, mean_estimate, 0);
 
-        // std::cout << "VALUE FUNCTION: " << std::endl;
+        print(value_function);
 
-        // std::cout << "----------------------------" << std::endl;
-        // for (int i = 0; i < grid_size; i++) {
-        //     for (int j = 0; j < grid_size; j++) {
-        //         std::cout << "| " << value_function[i][j] << " ";
-        //     }
-        //     std::cout << "|" << std::endl;
-        //     std::cout << "----------------------------" << std::endl;
-        // }
+        cout << "Value function calculated" << endl;
 
         std::vector<int> path;
-
-        // for (int i = 0; i < grid_size; i++) {
-        //     path[i].resize(grid_size);
-        //     for (int j = 0; j < grid_size; j++) {
-        //         path[i][j] = -1;
-        //     }
-        // }
 
         std::ofstream f;
         f.open("/home/ironman/grid-world-rl/results.txt");
 
         initialize_action_matrix(action_transition_matrix);
+
+        cout << "Initialised the action matrix again" << endl;
+
         find_path(value_function, path);
+
+        cout << "Path Found" << endl;
 
         if (f.is_open()) {
             f << grid_size << endl;
@@ -830,16 +804,6 @@ int main() {
         else {
             cout << "unable to open the file" << endl;
         }
-
-        // std::cout << "PATH: " << std::endl;
-        // std::cout << "----------------------------" << std::endl;
-        // for (int i = 0; i < grid_size; i++) {
-        //     for (int j = 0; j < grid_size; j++) {
-        //         std::cout << "| " << path[i][j] << " ";
-        //     }
-        //     std::cout << "|" << std::endl;
-        //     std::cout << "----------------------------" << std::endl;
-        // }
     }
     return 0;
 }
