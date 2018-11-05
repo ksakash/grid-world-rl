@@ -28,24 +28,24 @@ int start_j;
 int target_i;
 int target_j;
 
-std::default_random_engine generator;
-std::vector<std::vector<double>> mean_estimate;
-std::vector<std::vector<grid_element>> grid;
-std::vector<std::vector<int>> action_transition_matrix;
+std::default_random_engine generator; // random number generator
+std::vector<std::vector<double>> mean_estimate; // estimate of the mean of all the grid elements
+std::vector<std::vector<grid_element>> grid; // grid, containing sigma and mean for each grid element 
+std::vector<std::vector<int>> action_transition_matrix; // probability of taking an action in an state: UP, DOWN, LEFT or RIGHT
 
-double number_generator(double mean, double sigma) {
+double number_generator(double mean, double sigma) { // generates number according to the given gaussian distribution
 	std::normal_distribution<double> distribution(mean, sigma);
     return distribution(generator);   
 }
 
-bool atBoundary(int i, int j, int grid_size) {
+bool atBoundary(int i, int j, int grid_size) { // returns true if agent is at boundary
     if (i == 0 || i == grid_size - 1 || j == 0 || j == grid_size - 1) {
         return true;
     }
     return false;
 }
 
-bool atCorner(int i, int j, int grid_size) {
+bool atCorner(int i, int j, int grid_size) { // return true if agent is at a corner
     if ((i == 0 && j == 0) || (i == 0 && j == grid_size - 1) || (i == grid_size - 1 && j == 0) || (i == grid_size - 1 && j == grid_size - 1)) {
         return true;
     }
@@ -61,7 +61,7 @@ double maximum(double a, double b) {
         return b;
 }
 
-void copy_action_matrices(std::vector<std::vector<int>>& mat1, std::vector<std::vector<int>>& mat2) {
+void copy_action_matrices(std::vector<std::vector<int>>& mat1, std::vector<std::vector<int>>& mat2) { // for copying matrices
     for (int i = 0; i < grid_size*grid_size; i++) {
         for (int j = 0; j < 4; j++) {
             mat1[i][j] = mat2[i][j];
@@ -69,13 +69,16 @@ void copy_action_matrices(std::vector<std::vector<int>>& mat1, std::vector<std::
     }
 }
 
+// for calculating the value function for each state, recursively, following bellman optimality equation
 double max(int i, int j, std::vector<std::vector<double>>& value_function, std::vector<std::vector<int>>& mat, std::vector<std::vector<double>> mean_estimate, int distance) {
 
-    double gamma = 0.5;
-    double beta = 0.7;
+    double gamma = 0.5; // dicount factor
+    double beta = 0.7; // path length factor
     
+    // four action transition matrices for four possible actions
     std::vector<std::vector<int>> mat1(grid_size*grid_size, std::vector<int>(4));
     std::vector<std::vector<int>> mat2(grid_size*grid_size, std::vector<int>(4));
+    std::vector<std::vector<int>> mat3(grid_size*grid_size, std::vector<int>(4));
     std::vector<std::vector<int>> mat4(grid_size*grid_size, std::vector<int>(4));
 
     copy_action_matrices(mat1, mat);
@@ -88,11 +91,12 @@ double max(int i, int j, std::vector<std::vector<double>>& value_function, std::
 
         if (corner_element) {
             if (i == 0 && j == 0) {
-                if (target_i == i && target_j == j) {
+                if (target_i == i && target_j == j) { // if we reach terminal state
                     value_function[i][j] = mean_estimate[i][j];
                     return mean_estimate[i][j];
                 }
                 else {
+                    // to prevent the agent from visiting the already visited location
                     mat1[grid_size*i + j+1][LEFT] = 0;
                     mat2[grid_size*i + j+1][LEFT] = 0;
                     mat2[grid_size*(i+1) + j][UP] = 0;
@@ -100,6 +104,8 @@ double max(int i, int j, std::vector<std::vector<double>>& value_function, std::
 
                     double v1 = 0;
                     double v2 = 0;
+
+                    // calculating value faction for the two possible actions 
                     if (mat[grid_size*i+j][RIGHT] == 1) {
                         v1 = mean_estimate[0][0] - beta*(distance + 1) + gamma*max(i, j+1, value_function,  mat1, mean_estimate, distance+1);
                         
@@ -202,7 +208,6 @@ double max(int i, int j, std::vector<std::vector<double>>& value_function, std::
             }
         }
         else {
-            std::vector<std::vector<int>> mat3(grid_size*grid_size, std::vector<int>(4));
             copy_action_matrices(mat3, mat);
 
             if (j == 0) {
@@ -362,9 +367,6 @@ double max(int i, int j, std::vector<std::vector<double>>& value_function, std::
         }
     }
     else {
-        std::vector<std::vector<int>> mat3(grid_size*grid_size, std::vector<int>(4));
-        std::vector<std::vector<int>> mat4(grid_size*grid_size, std::vector<int>(4));
-
         copy_action_matrices(mat3, mat);
         copy_action_matrices(mat4, mat);
 
@@ -674,7 +676,7 @@ void stringToInt (string s, std::vector<double>& arr) {
     }
 }
 
-void processInput (string str) {
+void processInput (string str) { // for taking processing from a file
 
     string line;
     ifstream myfile (str);
@@ -769,7 +771,7 @@ int main() {
 
         std::vector<std::vector<double>> value_function(grid_size, std::vector<double>(grid_size));
         
-        max(0, 0, value_function, action_transition_matrix, mean_estimate, 0);
+        max(0, 0, value_function, action_transition_matrix, mean_estimate, 0); // for calculating value_function
 
         print(value_function);
 
@@ -784,7 +786,7 @@ int main() {
 
         cout << "Initialised the action matrix again" << endl;
 
-        find_path(value_function, path);
+        find_path(value_function, path); // to find the optimal path by acting greedy on the value function
 
         cout << "Path Found" << endl;
 
