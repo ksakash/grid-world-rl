@@ -24,7 +24,7 @@ To change input one can edit the file `inputs.txt`.
 
 Let s<sub>1</sub>, s<sub>2</sub>, s<sub>3</sub> and s<sub>4</sub> be the states which can be accessed from the current state s, then the algorithm will update the value of s in the following way:
 
-'s = r(s) - beta*(length of the path till s) + max (s<sub>1</sub>, s<sub>2</sub>, s<sub>3</sub>, s<sub>4</sub>)'
+s = r(s) - beta*(length of the path till s) + max (s<sub>1</sub>, s<sub>2</sub>, s<sub>3</sub>, s<sub>4</sub>)
 
 For which the value of all s<sub>i</sub> have to calculated, so the algorithm goes on recursively and in this way the value function is calculated for every element in the grid.
 
