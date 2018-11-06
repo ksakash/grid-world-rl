@@ -1,43 +1,19 @@
-// reading a text file
 #include <iostream>
 #include <vector>
 #include <fstream>
 #include <string>
+
 using namespace std;
 
-void stringToInt (string s) {
-    std::vector<int> v;
-    for (int i = 0; i < s.length(); i++) {
-        string n = "";
-        while (s[i] != ' ' && i != s.length()-1) {
-            n.push_back(s[i]);
-            i++;
-        }
-        if (s.length() == 1) {
-            n.push_back(s[i]);
-        }
-        // cout << n << endl;
-        double t = std::stof(n);
-        cout << t << " ";
-    }
-    cout << endl;
+void function(vector<vector<int>> mat) {
+    mat[1][0] = 1;
 }
 
-int main () {
-  string line;
-  ifstream myfile ("/home/ironman/grid-world-rl/results.txt");
-  if (myfile.is_open())
-  {
-    while ( getline (myfile,line) )
-    {
-        // cout << line << '\n';
-        // cout << "what's happening" << endl;
-        stringToInt(line);
-    }
-    myfile.close();
-  }
+int main() {
+    vector<vector<int>> mat(2, vector<int>(2));
 
-  else cout << "Unable to open file"; 
+    cout << "mat[0][0]: " << mat[0][0] << endl;
+    cout << "mat[1][0]: " << mat[1][0] << endl;
 
-  return 0;
+    return 0;
 }

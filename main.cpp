@@ -32,26 +32,11 @@ std::default_random_engine generator; // random number generator
 std::vector<std::vector<double>> mean_estimate; // estimate of the mean of all the grid elements
 std::vector<std::vector<grid_element>> grid; // grid, containing sigma and mean for each grid element 
 std::vector<std::vector<int>> action_transition_matrix; // probability of taking an action in an state: UP, DOWN, LEFT or RIGHT
+std::vector<std::vector<double>> value_function;
 
 double number_generator(double mean, double sigma) { // generates number according to the given gaussian distribution
 	std::normal_distribution<double> distribution(mean, sigma);
     return distribution(generator);   
-}
-
-bool atBoundary(int i, int j, int grid_size) { // returns true if agent is at boundary
-    if (i == 0 || i == grid_size - 1 || j == 0 || j == grid_size - 1) {
-        return true;
-    }
-    return false;
-}
-
-bool atCorner(int i, int j, int grid_size) { // return true if agent is at a corner
-    if ((i == 0 && j == 0) || (i == 0 && j == grid_size - 1) || (i == grid_size - 1 && j == 0) || (i == grid_size - 1 && j == grid_size - 1)) {
-        return true;
-    }
-    else {
-        return false;
-    }
 }
 
 double maximum(double a, double b) {
@@ -61,354 +46,43 @@ double maximum(double a, double b) {
         return b;
 }
 
-void copy_action_matrices(std::vector<std::vector<int>>& mat1, std::vector<std::vector<int>>& mat2) { // for copying matrices
-    for (int i = 0; i < grid_size*grid_size; i++) {
-        for (int j = 0; j < 4; j++) {
-            mat1[i][j] = mat2[i][j];
-        }
-    }
-}
-
 // for calculating the value function for each state, recursively, following bellman optimality equation
-double max(int i, int j, std::vector<std::vector<double>>& value_function, std::vector<std::vector<int>>& mat, std::vector<std::vector<double>> mean_estimate, int distance) {
+double max(int i, int j, std::vector<std::vector<int>> mat, int distance) {
 
     double gamma = 0.5; // dicount factor
     double beta = 0.7; // path length factor
+
+    mat[i][j] = 1; // to prevent the agent from visiting the already visited location
+
+    cout <<"value function, i: " << i << ", j: " << j << endl;
     
-    // four action transition matrices for four possible actions
-    std::vector<std::vector<int>> mat1(grid_size*grid_size, std::vector<int>(4));
-    std::vector<std::vector<int>> mat2(grid_size*grid_size, std::vector<int>(4));
-    std::vector<std::vector<int>> mat3(grid_size*grid_size, std::vector<int>(4));
-    std::vector<std::vector<int>> mat4(grid_size*grid_size, std::vector<int>(4));
-
-    copy_action_matrices(mat1, mat);
-    copy_action_matrices(mat2, mat);
-
-    bool boundary_element = atBoundary(i, j, grid_size);
-
-    if (boundary_element) {
-        bool corner_element = atCorner(i, j, grid_size);
-
-        if (corner_element) {
-            if (i == 0 && j == 0) {
-                if (target_i == i && target_j == j) { // if we reach terminal state
-                    value_function[i][j] = mean_estimate[i][j];
-                    return mean_estimate[i][j];
-                }
-                else {
-                    // to prevent the agent from visiting the already visited location
-                    mat1[grid_size*i + j+1][LEFT] = 0;
-                    mat2[grid_size*i + j+1][LEFT] = 0;
-                    mat2[grid_size*(i+1) + j][UP] = 0;
-                    mat1[grid_size*(i+1) + j][UP] = 0;
-
-                    double v1 = 0;
-                    double v2 = 0;
-
-                    // calculating value faction for the two possible actions 
-                    if (mat[grid_size*i+j][RIGHT] == 1) {
-                        v1 = mean_estimate[0][0] - beta*(distance + 1) + gamma*max(i, j+1, value_function,  mat1, mean_estimate, distance+1);
-                        
-                    }
-                    if (mat[grid_size*i+j][DOWN] == 1) {
-                        v2 = mean_estimate[0][0] - beta*(distance + 1) + gamma*max(i+1, j, value_function,  mat2, mean_estimate, distance+1);
-                    }
-
-                    double temp = maximum(v1, v2);
-                    if (temp > value_function[i][j]) {
-                        value_function[i][j] = temp;
-                    }
-                    return temp;
-                }
-            }
-            else if (i == 0 && j == grid_size - 1) {
-
-                if (target_i == i && target_j == j) {
-                    value_function[i][j] = mean_estimate[i][j];
-                    return mean_estimate[i][j];
-                }
-                else {
-                    mat1[grid_size*i + j-1][RIGHT] = 0;
-                    mat1[grid_size*(i+1) + j][UP] = 0;
-                    mat2[grid_size*i + j-1][RIGHT] = 0;
-                    mat2[grid_size*(i+1) + j][UP] = 0;
-
-                    double v1 = 0;
-                    double v2 = 0;
-
-                    if (mat[grid_size*i + j][LEFT] == 1) {
-                        v1 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i, j-1, value_function, mat1, mean_estimate, distance+1);
-                    }
-                    if (mat[grid_size*i + j][DOWN] == 1) {
-                        v2 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i+1, j, value_function, mat2, mean_estimate, distance+1);
-                    }
-
-                    double temp = maximum(v1, v2);
-                    if (temp > value_function[i][j]) {
-                        value_function[i][j] = temp;
-                    }
-                    return temp;
-                }
-            }
-            else if (i == grid_size - 1 && j == 0) {
-                if (target_i == i && target_j == j) {
-                    value_function[i][j] = mean_estimate[i][j];
-                    return mean_estimate[i][j];
-                }
-                else {
-                    mat1[grid_size*i + j+1][LEFT] = 0;
-                    mat1[grid_size*(i-1) + j][DOWN] = 0;
-                    mat2[grid_size*i + j+1][LEFT] = 0;
-                    mat2[grid_size*(i-1) + j][DOWN] = 0;
-
-                    double v1 = 0;
-                    double v2 = 0;
-
-                    if (mat[grid_size*i + j][RIGHT] == 1) {
-                        v1 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i, j+1, value_function, mat1, mean_estimate, distance+1);
-                    }
-                    if (mat[grid_size*i + j][UP] == 1) {
-                        v2 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i-1, j, value_function, mat2, mean_estimate, distance+1);
-                    }
-
-                    double temp = maximum(v1, v2);
-                    if (temp > value_function[i][j]) {
-                        value_function[i][j] = temp;
-                    }
-                    return temp;
-                }
-            }
-            else if (i == grid_size-1 && j == grid_size-1) {
-                if (target_i == i && target_j == j) {
-                    value_function[i][j] = mean_estimate[i][j];
-                    return mean_estimate[i][j];
-                }
-                else {
-                    mat1[grid_size*i + j-1][RIGHT] = 0;
-                    mat1[grid_size*(i-1) + j][DOWN] = 0;
-                    mat2[grid_size*i + j-1][RIGHT] = 0;
-                    mat2[grid_size*(i-1) + j][DOWN] = 0;
-
-                    double v1 = 0;
-                    double v2 = 0;
-
-                    if (mat[grid_size*i + j][LEFT] == 1) {
-                        v1 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i, j-1, value_function, mat1, mean_estimate, distance+1);
-                    }
-                    if (mat[grid_size*i + j][UP] == 1) {
-                        v2 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i-1, j, value_function, mat2, mean_estimate, distance+1);
-                    }
-
-                    double temp = maximum(v1, v2);
-                    if (temp > value_function[i][j]) {
-                        value_function[i][j] = temp;
-                    }
-                    return temp;
-                }
-            }
-        }
-        else {
-            copy_action_matrices(mat3, mat);
-
-            if (j == 0) {
-
-                if (target_i == i && target_j == j) {
-                    value_function[i][j] = mean_estimate[i][j];
-                    return mean_estimate[i][j];
-                }
-                else {
-                    mat1[grid_size*i + j+1][LEFT] = 0;
-                    mat1[grid_size*(i-1) + j][DOWN] = 0;
-                    mat1[grid_size*(i+1) + j][UP] = 0;
-                    mat2[grid_size*i + j+1][LEFT] = 0;
-                    mat2[grid_size*(i-1) + j][DOWN] = 0;
-                    mat2[grid_size*(i+1) + j][UP] = 0;
-                    mat3[grid_size*i + j+1][LEFT] = 0;
-                    mat3[grid_size*(i-1) + j][DOWN] = 0;
-                    mat3[grid_size*(i+1) + j][UP] = 0;
-
-                    double v1 = 0;
-                    double v2 = 0;
-                    double v3 = 0;
-
-                    if (mat[grid_size*i + j][RIGHT] == 1) {
-                        v1 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i, j+1, value_function, mat1, mean_estimate, distance+1);
-                    }
-                    if (mat[grid_size*i + j][UP] == 1) {
-                        v2 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i-1, j, value_function, mat2, mean_estimate, distance+1);
-                    }
-                    if (mat[grid_size*i + j][DOWN] == 1) {
-                        v3 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i+1, j, value_function, mat3, mean_estimate, distance+1);
-                    }
-
-                    double temp = maximum(v1, maximum(v2, v3));
-                    if (temp > value_function[i][j]) {
-                        value_function[i][j] = temp;
-                    }
-                    return temp;
-                }
-            }
-            else if (i == grid_size - 1) {
-                if (target_i == i && target_j == j) {
-                    value_function[i][j] = mean_estimate[i][j];
-                    return mean_estimate[i][j];
-                }
-                else {
-                    mat1[grid_size*i + j+1][LEFT] = 0;
-                    mat1[grid_size*(i-1) + j][DOWN] = 0;
-                    mat1[grid_size*(i) + j-1][RIGHT] = 0;
-                    mat2[grid_size*i + j+1][LEFT] = 0;
-                    mat2[grid_size*(i-1) + j][DOWN] = 0;
-                    mat2[grid_size*(i) + j-1][RIGHT] = 0;
-                    mat3[grid_size*i + j+1][LEFT] = 0;
-                    mat3[grid_size*(i-1) + j][DOWN] = 0;
-                    mat3[grid_size*(i) + j-1][RIGHT] = 0;
-
-                    double v1 = 0;
-                    double v2 = 0;
-                    double v3 = 0;
-
-                    if (mat[grid_size*i + j][RIGHT] == 1) {
-                        v1 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i, j+1, value_function, mat1, mean_estimate, distance+1);
-                    }
-                    if (mat[grid_size*i + j][UP] == 1) {
-                        v2 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i-1, j, value_function, mat2, mean_estimate, distance+1);
-                    }
-                    if (mat[grid_size*i + j][LEFT] == 1) {
-                        v3 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i, j-1, value_function, mat3, mean_estimate, distance+1);
-                    }
-
-                    double temp = maximum(v1, maximum(v2, v3));
-                    if (temp > value_function[i][j]) {
-                        value_function[i][j] = temp;
-                    }
-                    return temp;
-                }
-            }
-            else if (i == 0) {
-                if (target_i == i && target_j == j) {
-                    value_function[i][j] = mean_estimate[i][j];
-                    return mean_estimate[i][j];
-                }
-                else {
-                    mat1[grid_size*i + j+1][LEFT] = 0;
-                    mat1[grid_size*(i+1) + j][UP] = 0;
-                    mat1[grid_size*(i) + j-1][RIGHT] = 0;
-
-                    mat2[grid_size*i + j+1][LEFT] = 0;
-                    mat2[grid_size*(i+1) + j][UP] = 0;
-                    mat2[grid_size*(i) + j-1][RIGHT] = 0;
-
-                    mat3[grid_size*i + j+1][LEFT] = 0;
-                    mat3[grid_size*(i+1) + j][UP] = 0;
-                    mat3[grid_size*(i) + j-1][RIGHT] = 0;
-
-                    double v1 = 0;
-                    double v2 = 0;
-                    double v3 = 0;
-
-                    if (mat[grid_size*i + j][RIGHT] == 1) {
-                        v1 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i, j+1, value_function, mat1, mean_estimate, distance+1);
-                    }
-                    if (mat[grid_size*i + j][LEFT] == 1) {
-                        v2 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i, j-1, value_function, mat2, mean_estimate, distance+1);
-                    }
-                    if (mat[grid_size*i + j][DOWN] == 1) {
-                        v3 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i+1, j, value_function, mat3, mean_estimate, distance+1);
-                    }
-
-                    double temp = maximum(v1, maximum(v2, v3));
-                    if (temp > value_function[i][j]) {
-                        value_function[i][j] = temp;
-                    }
-                    return temp;
-                }                
-            }
-            else if (j == grid_size - 1) {
-
-                if (target_i == i && target_j == j) {
-                    value_function[i][j] = mean_estimate[i][j];
-                    return mean_estimate[i][j];
-                }
-                else {
-                    mat1[grid_size*i + j-1][RIGHT] = 0;
-                    mat1[grid_size*(i-1) + j][DOWN] = 0;
-                    mat1[grid_size*(i+1) + j][UP] = 0;
-
-                    mat2[grid_size*i + j-1][RIGHT] = 0;
-                    mat2[grid_size*(i-1) + j][DOWN] = 0;
-                    mat2[grid_size*(i+1) + j][UP] = 0;
-
-                    mat3[grid_size*i + j-1][RIGHT] = 0;
-                    mat3[grid_size*(i-1) + j][DOWN] = 0;
-                    mat3[grid_size*(i+1) + j][UP] = 0;
-
-                    double v1 = 0;
-                    double v2 = 0;
-                    double v3 = 0;
-
-                    if (mat[grid_size*i + j][LEFT] == 1) {
-                        v1 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i, j-1, value_function, mat1, mean_estimate, distance+1);
-                    }
-                    if (mat[grid_size*i + j][UP] == 1) {
-                        v2 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i-1, j, value_function, mat2, mean_estimate, distance+1);
-                    }
-                    if (mat[grid_size*i + j][DOWN] == 1) {
-                        v3 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i+1, j, value_function, mat3, mean_estimate, distance+1);
-                    }
-
-                    double temp = maximum(v1, maximum(v2, v3));
-                    if (temp > value_function[i][j]) {
-                        value_function[i][j] = temp;
-                    }
-                    return temp;
-                }
-            }
-        }
+    if (target_i == i && target_j == j) { // if we reach terminal state
+        value_function[i][j] = mean_estimate[i][j];
+        return mean_estimate[i][j];
     }
     else {
-        copy_action_matrices(mat3, mat);
-        copy_action_matrices(mat4, mat);
-
-        mat1[grid_size*i + j-1][RIGHT] = 0;
-        mat1[grid_size*(i-1) + j][DOWN] = 0;
-        mat1[grid_size*(i+1) + j][UP] = 0;
-        mat1[grid_size*i + j+1][LEFT] = 0;
-
-        mat2[grid_size*i + j-1][RIGHT] = 0;
-        mat2[grid_size*(i-1) + j][DOWN] = 0;
-        mat2[grid_size*(i+1) + j][UP] = 0;
-        mat2[grid_size*i + j+1][LEFT] = 0;
         
-        mat3[grid_size*i + j-1][RIGHT] = 0;
-        mat3[grid_size*(i-1) + j][DOWN] = 0;
-        mat3[grid_size*(i+1) + j][UP] = 0;
-        mat3[grid_size*i + j+1][LEFT] = 0;
-        
-        mat4[grid_size*i + j-1][RIGHT] = 0;
-        mat4[grid_size*(i-1) + j][DOWN] = 0;
-        mat4[grid_size*(i+1) + j][UP] = 0;
-        mat4[grid_size*i + j+1][LEFT] = 0;
-
         double v1 = 0;
         double v2 = 0;
         double v3 = 0;
         double v4 = 0;
 
-        if (mat[grid_size*i + j][LEFT] == 1) {
-            v1 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i, j-1, value_function, mat1, mean_estimate, distance+1);
+        // calculating value faction for the two possible actions 
+        if (j+1 < grid_size && mat[i][j+1] == 0) {
+            v1 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i, j+1, mat, distance+1);
+            
         }
-        if (mat[grid_size*i + j][UP] == 1) {
-            v2 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i-1, j, value_function, mat2, mean_estimate, distance+1);
+        if (i+1 < grid_size && mat[i+1][j] == 0) {
+            v2 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i+1, j, mat, distance+1);
         }
-        if (mat[grid_size*i + j][DOWN] == 1) {
-            v3 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i+1, j, value_function, mat3, mean_estimate, distance+1);
+        if (i-1 >= 0 && mat[i-1][j] == 0) {
+            v3 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i-1, j, mat, distance+1);
         }
-        if (mat[grid_size*i + j][RIGHT] == 1) {
-            v4 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i, j+1, value_function, mat4, mean_estimate, distance+1); 
+        if (j-1 >= 0 && mat[i][j-1] == 0) {
+            v4 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i, j-1, mat, distance+1);
         }
 
-        double temp = maximum(maximum(v1, v4), maximum(v2, v3));
+        double temp = maximum(maximum(v1, v2), maximum(v3, v4));
         if (temp > value_function[i][j]) {
             value_function[i][j] = temp;
         }
@@ -427,222 +101,57 @@ void print(std::vector<std::vector<double>> a) {
     }
 }
 
-void initialize_action_matrix(std::vector<std::vector<int>>& action_transition_matrix) {
-
-    for (int i = 0; i < grid_size; i++) {
-        for (int j = 0; j < grid_size; j++) {
-            bool boundary_element = atBoundary(i, j, grid_size);
-            if (boundary_element) {
-                bool corner_element = atCorner(i, j, grid_size);
-                if (corner_element) {
-                    if (i == 0 && j == 0) {
-                        action_transition_matrix[grid_size*i + j][UP] = 0;
-                        action_transition_matrix[grid_size*i + j][DOWN] = 1;
-                        action_transition_matrix[grid_size*i + j][RIGHT] = 1;
-                        action_transition_matrix[grid_size*i + j][LEFT] = 0;
-                    }
-                    else if (i == 0 && j == grid_size-1) {
-                        action_transition_matrix[grid_size*i + j][UP] = 0;
-                        action_transition_matrix[grid_size*i + j][DOWN] = 1;
-                        action_transition_matrix[grid_size*i + j][RIGHT] = 0;
-                        action_transition_matrix[grid_size*i + j][LEFT] = 1;
-                    }
-                    else if (i == grid_size-1 && j == 0) {
-                        action_transition_matrix[grid_size*i + j][UP] = 1;
-                        action_transition_matrix[grid_size*i + j][DOWN] = 0;
-                        action_transition_matrix[grid_size*i + j][RIGHT] = 1;
-                        action_transition_matrix[grid_size*i + j][LEFT] = 0;
-                    }
-                    else if (i == grid_size-1 && j == grid_size-1) {
-                        action_transition_matrix[grid_size*i + j][UP] = 1;
-                        action_transition_matrix[grid_size*i + j][DOWN] = 0;
-                        action_transition_matrix[grid_size*i + j][RIGHT] = 0;
-                        action_transition_matrix[grid_size*i + j][LEFT] = 1;
-                    }
-                }
-                else {
-                    if (i == 0) {
-                        if (target_j == grid_size-1) {
-                            action_transition_matrix[grid_size*i + j][LEFT] = 0;
-                        }
-                        else {
-                            action_transition_matrix[grid_size*i + j][LEFT] = 1;
-                        }
-                        if (target_j == 0) {
-                            action_transition_matrix[grid_size*i + j][RIGHT] = 0;
-                        }
-                        else {
-                            action_transition_matrix[grid_size*i + j][RIGHT] = 1;
-                        }
-                        action_transition_matrix[grid_size*i + j][UP] = 0;
-                        action_transition_matrix[grid_size*i + j][DOWN] = 1;                        
-                    }
-                    else if (i == grid_size-1) {
-                        action_transition_matrix[grid_size*i + j][UP] = 1;
-                        action_transition_matrix[grid_size*i + j][DOWN] = 0;
-                        if (target_j == grid_size-1) {
-                            action_transition_matrix[grid_size*i + j][LEFT] = 0;
-                        }
-                        else {
-                            action_transition_matrix[grid_size*i + j][LEFT] = 1;
-                        }
-                        if (target_j == 0) {
-                            action_transition_matrix[grid_size*i + j][RIGHT] = 0;
-                        }
-                        else {
-                            action_transition_matrix[grid_size*i + j][RIGHT] = 1;
-                        }
-                    }
-                    else if (j == 0) {
-                        if (target_i == grid_size-1) {
-                            action_transition_matrix[grid_size*i + j][UP] = 0;
-                        }
-                        else {
-                            action_transition_matrix[grid_size*i + j][UP] = 1;
-                        }
-                        if (target_i == 0) {
-                            action_transition_matrix[grid_size*i + j][DOWN] = 0;
-                        }
-                        else {
-                            action_transition_matrix[grid_size*i + j][DOWN] = 1;
-                        }
-                        action_transition_matrix[grid_size*i + j][RIGHT] = 1;
-                        action_transition_matrix[grid_size*i + j][LEFT] = 0;
-                    }
-                    else if (j == grid_size-1) {
-                        if (target_i == grid_size-1) {
-                            action_transition_matrix[grid_size*i + j][UP] = 0;
-                        }
-                        else {
-                            action_transition_matrix[grid_size*i + j][UP] = 1;
-                        }
-                        if (target_i == 0) {
-                            action_transition_matrix[grid_size*i + j][DOWN] = 0;
-                        }
-                        else {
-                            action_transition_matrix[grid_size*i + j][DOWN] = 1;
-                        }
-                        action_transition_matrix[grid_size*i + j][RIGHT] = 0;
-                        action_transition_matrix[grid_size*i + j][LEFT] = 1;
-                    }
-                }
-            }
-            else {
-                action_transition_matrix[grid_size*i + j][UP] = 1;
-                action_transition_matrix[grid_size*i + j][DOWN] = 1;
-                action_transition_matrix[grid_size*i + j][RIGHT] = 1;
-                action_transition_matrix[grid_size*i + j][LEFT] = 1;
-            }
-        }
-    }
-}
-
-void find_path(std::vector<std::vector<double>> value_function, std::vector<int>& path) {
+void find_path(std::vector<std::vector<int>> mat, std::vector<int>& path) {
     int i = 0;
     int j = 0;
 
     while (i != target_i || j != target_j) {
 
-        cout << "Inside find_path, i: " << i << ", j: " << j << endl;
+        mat[i][j] = 1;
 
-        bool boundary_element = atBoundary(i, j, grid_size);
-        if (boundary_element) {
-            bool corner_element = atCorner(i, j, grid_size);
-            if (corner_element) {
-                if (i == 0 && j == 0) {
-                    action_transition_matrix[grid_size*i + j+1][LEFT] = 0;
-                    action_transition_matrix[grid_size*(i+1) + j][UP] = 0;
-                }
-                else if (i == 0 && j == grid_size-1) {
-                    action_transition_matrix[grid_size*(i+1) + j][UP] = 0;
-                    action_transition_matrix[grid_size*i + j-1][RIGHT] = 0;
-                }
-                else if (i == grid_size-1 && j == 0) {
-                    action_transition_matrix[grid_size*(i-1) + j][DOWN] = 0;
-                    action_transition_matrix[grid_size*i + j+1][LEFT] = 0;
-                }
-                else if (i == grid_size-1 && j == grid_size-1) {
-                    action_transition_matrix[grid_size*(i-1) + j][DOWN] = 0;
-                    action_transition_matrix[grid_size*i + j-1][RIGHT] = 0;
-                }
-            }
-            else {
-                if (i == 0) {
-                    action_transition_matrix[grid_size*i + j+1][LEFT] = 0;
-                    action_transition_matrix[grid_size*(i+1) + j][UP] = 0;
-                    action_transition_matrix[grid_size*(i) + j-1][RIGHT] = 0;
-                }
-                else if (i == grid_size-1) {
-                    action_transition_matrix[grid_size*i + j+1][LEFT] = 0;
-                    action_transition_matrix[grid_size*(i-1) + j][DOWN] = 0;
-                    action_transition_matrix[grid_size*(i) + j-1][RIGHT] = 0;
-                }
-                else if (j == 0) {
-                    action_transition_matrix[grid_size*i + j+1][LEFT] = 0;
-                    action_transition_matrix[grid_size*(i-1) + j][DOWN] = 0;
-                    action_transition_matrix[grid_size*(i+1) + j][UP] = 0;
-                }
-                else if (j == grid_size-1) {
-                    action_transition_matrix[grid_size*i + j-1][RIGHT] = 0;
-                    action_transition_matrix[grid_size*(i-1) + j][DOWN] = 0;
-                    action_transition_matrix[grid_size*(i+1) + j][UP] = 0;
-                }
-            }
-        }
-        else {
-            action_transition_matrix[grid_size*i + j-1][RIGHT] = 0;
-            action_transition_matrix[grid_size*(i-1) + j][DOWN] = 0;
-            action_transition_matrix[grid_size*(i+1) + j][UP] = 0;
-            action_transition_matrix[grid_size*i + j+1][LEFT] = 0;
-        }
+        cout << "Inside find_path, i: " << i << ", j: " << j << endl;
 
         double max = 0;
         int action = -1;
-        for (int k = 0; k < 4; k++) {
-            if (action_transition_matrix[grid_size*i + j][k] == 1) {
-                if (k == LEFT) {
-                    if (value_function[i][j-1] > max) {
-                        max = value_function[i][j-1];
-                        action = k;
-                    }
-                }
-                else if (k == RIGHT) {
-                    if (value_function[i][j+1] > max) {
-                        max = value_function[i][j+1];
-                        action = k;
-                    }
-                }
-                else if (k == UP) {
-                    if (value_function[i-1][j] > max) {
-                        max = value_function[i-1][j];
-                        action = k;
-                    }
-                }
-                else {
-                    if (value_function[i+1][j] > max) {
-                        max = value_function[i+1][j];
-                        action = k;
-                    }
-                }
+
+        if (j-1 >= 0 && mat[i][j-1] == 0) {
+            if (value_function[i][j-1] > max) {
+                max = value_function[i][j-1];
+                action = LEFT;
             }
         }
+        if (j+1 < grid_size && mat[i][j+1] == 0) {
+            if (value_function[i][j+1] > max) {
+                max = value_function[i][j+1];
+                action = RIGHT;
+            }
+        }
+        if (i-1 >= 0 && mat[i-1][j] == 0) {
+            if (value_function[i-1][j] > max) {
+                max = value_function[i-1][j];
+                action = UP;
+            }
+        }
+        if (i+1 < grid_size && mat[i+1][j] == 0) {
+            if (value_function[i+1][j] > max) {
+                max = value_function[i+1][j];
+                action = DOWN;
+            }
+        }
+
         if (action == -1) {
             cout << "Invalid Path" << endl;
             if (path[path.size()-1] == LEFT) {
                 j++;
-                action_transition_matrix[grid_size*i + j][LEFT] = 0;
             }
             else if (path[path.size()-1] == RIGHT) {
                 j--;
-                action_transition_matrix[grid_size*i + j][RIGHT] = 0;
             }
             else if (path[path.size()-1] == UP) {
                 i++;
-                action_transition_matrix[grid_size*i + j][UP] = 0;
             }
             else if (path[path.size()-1] == DOWN) {
-                i--;
-                action_transition_matrix[grid_size*i + j][DOWN] = 0;
+                i--;    
             }
             path.pop_back();
             cout << "shifted to i: " << i << " j: " << j << endl;
@@ -742,9 +251,7 @@ int main() {
     cout << "target_i: " << target_i << " target_j: " << target_j << endl;
     cout << "episode_count: " << episode_count << endl;
 
-    action_transition_matrix.resize(grid_size*grid_size, std::vector<int>(4));
-
-    initialize_action_matrix(action_transition_matrix);
+    action_transition_matrix.resize(grid_size, std::vector<int>(grid_size));
 
     cout << "Intialised the action matrix successfully" << endl;
 
@@ -769,9 +276,9 @@ int main() {
             }
         }
 
-        std::vector<std::vector<double>> value_function(grid_size, std::vector<double>(grid_size));
+        value_function.resize(grid_size, std::vector<double>(grid_size));
         
-        max(0, 0, value_function, action_transition_matrix, mean_estimate, 0); // for calculating value_function
+        max(0, 0, action_transition_matrix, 0); // for calculating value_function
 
         print(value_function);
 
@@ -782,11 +289,9 @@ int main() {
         std::ofstream f;
         f.open("/home/ironman/grid-world-rl/results.txt");
 
-        initialize_action_matrix(action_transition_matrix);
-
         cout << "Initialised the action matrix again" << endl;
 
-        find_path(value_function, path); // to find the optimal path by acting greedy on the value function
+        find_path(action_transition_matrix, path); // to find the optimal path by acting greedy on the value function
 
         cout << "Path Found" << endl;
 
