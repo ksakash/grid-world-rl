@@ -10,10 +10,10 @@ void function(vector<vector<int>> mat) {
 }
 
 int main() {
-    vector<vector<int>> mat(2, vector<int>(2));
+    vector<vector<double>> mat1;
+    mat1.resize(2, vector<double>(2));
 
-    cout << "mat[0][0]: " << mat[0][0] << endl;
-    cout << "mat[1][0]: " << mat[1][0] << endl;
+    cout << "mat1[0][0]: " << mat1[0][0] << endl;
 
     return 0;
 }
