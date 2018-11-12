@@ -133,8 +133,8 @@ void print(std::vector<std::vector<int>> a) {
 }
 
 void find_path(std::vector<std::vector<int>> mat, std::vector<int>& path) {
-    int i = 0;
-    int j = 0;
+    int i = start_i;
+    int j = start_j;
 
     while (i != target_i || j != target_j) {
 
@@ -300,24 +300,24 @@ void initialize_action_matrix(std::vector<std::vector<int>>& action_transition_m
                 if (corner_element) {
                     if (i == 0 && j == 0) {
                         action_transition_matrix[grid_size*i + j][UP] = 0;
-                        action_transition_matrix[grid_size*i + j][DOWN] = 1;
+                        action_transition_matrix[grid_size*i + j][DOWN] = 0;
                         action_transition_matrix[grid_size*i + j][RIGHT] = 1;
                         action_transition_matrix[grid_size*i + j][LEFT] = 0;
                     }
                     else if (i == 0 && j == grid_size-1) {
                         action_transition_matrix[grid_size*i + j][UP] = 0;
-                        action_transition_matrix[grid_size*i + j][DOWN] = 1;
+                        action_transition_matrix[grid_size*i + j][DOWN] = 0;
                         action_transition_matrix[grid_size*i + j][RIGHT] = 0;
                         action_transition_matrix[grid_size*i + j][LEFT] = 0;
                     }
                     else if (i == grid_size-1 && j == 0) {
-                        action_transition_matrix[grid_size*i + j][UP] = 0;
+                        action_transition_matrix[grid_size*i + j][UP] = 1;
                         action_transition_matrix[grid_size*i + j][DOWN] = 0;
                         action_transition_matrix[grid_size*i + j][RIGHT] = 1;
                         action_transition_matrix[grid_size*i + j][LEFT] = 0;
                     }
                     else if (i == grid_size-1 && j == grid_size-1) {
-                        action_transition_matrix[grid_size*i + j][UP] = 0;
+                        action_transition_matrix[grid_size*i + j][UP] = 1;
                         action_transition_matrix[grid_size*i + j][DOWN] = 0;
                         action_transition_matrix[grid_size*i + j][RIGHT] = 0;
                         action_transition_matrix[grid_size*i + j][LEFT] = 0;
@@ -418,7 +418,7 @@ int main() {
 
     for (int i = 0; i < grid_size; i++) {
         for (int j = 0; j < grid_size; j++) {
-            path_length[i][j] = i+j;
+            path_length[i][j] = abs(i-9) + abs(j);
         }
     }
 
@@ -450,8 +450,6 @@ int main() {
 
         value_function.resize(grid_size, std::vector<double>(grid_size));
         
-        // max(0, 0, action_transition_matrix, 0); // for calculating value_function
-
         for (int j = 0; j < iterations; j++) {
             iterate(mat_prev, mat_next);
             mat_prev = mat_next;
