@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <string>
 #include <map>
+#include <cmath>
 #include <random>
 #include <vector>
 #include <fstream>
@@ -41,61 +42,10 @@ double number_generator(double mean, double sigma) { // generates number accordi
     return distribution(generator);   
 }
 
-// double maximum(double a, double b) {
-//     if (a > b) 
-//         return a;
-//     else 
-//         return b;
-// }
-
-// for calculating the value function for each state, recursively, following bellman optimality equation
-// double max(int i, int j, std::vector<std::vector<int>> mat, int distance) {
-
-//     mat[i][j] = 1; // to prevent the agent from visiting the already visited location
-
-//     double gamma = 0.5; // dicount factor
-//     double beta = 0.7; // path length factor
-
-//     cout <<"value function, i: " << i << ", j: " << j << endl;
-    
-//     if (target_i == i && target_j == j) { // if we reach terminal state
-//         value_function[i][j] = mean_estimate[i][j];
-//         return mean_estimate[i][j];
-//     }
-//     else {
-        
-//         double v1 = 0;
-//         double v2 = 0;
-//         double v3 = 0;
-//         double v4 = 0;
-
-//         // calculating value faction for the two possible actions 
-//         if (j+1 < grid_size && mat[i][j+1] == 0) {
-//             v1 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i, j+1, mat, distance+1);
-            
-//         }
-//         if (i+1 < grid_size && mat[i+1][j] == 0) {
-//             v2 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i+1, j, mat, distance+1);
-//         }
-//         if (i-1 >= 0 && mat[i-1][j] == 0) {
-//             v3 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i-1, j, mat, distance+1);
-//         }
-//         if (j-1 >= 0 && mat[i][j-1] == 0) {
-//             v4 = mean_estimate[i][j] - beta*(distance + 1) + gamma*max(i, j-1, mat, distance+1);
-//         }
-
-//         double temp = maximum(maximum(v1, v2), maximum(v3, v4));
-//         if (temp > value_function[i][j]) {
-//             value_function[i][j] = temp;
-//         }
-//         return temp;
-//     }
-// }
-
 void iterate(vector<vector<double>>& mat_prev, vector<vector<double>>& mat_next) {
     
-    double gamma = 0.5; // dicount factor
-    double beta = 0.7; // path length factor
+    double gamma = 0.63; // dicount factor
+    double beta = 0.1; // path length factor
 
     double v1 = 0;
     double v2 = 0;
@@ -141,26 +91,37 @@ void iterate(vector<vector<double>>& mat_prev, vector<vector<double>>& mat_next)
             
             if (action == LEFT) {
                 if (path_length[i][j-1] <= path_length[i][j] + 1)
-                    path_length[i][j-1] = path_length[i][j];
+                    path_length[i][j-1] = path_length[i][j] + 1;
             }
             if (action == RIGHT) {
                 
                 if (path_length[i][j+1] <= path_length[i][j] + 1)
-                    path_length[i][j+1] = path_length[i][j];
+                    path_length[i][j+1] = path_length[i][j] + 1;
             }
             if (action == UP) {
                 if (path_length[i-1][j] <= path_length[i][j] + 1)
-                    path_length[i-1][j] = path_length[i][j];
+                    path_length[i-1][j] = path_length[i][j] + 1;
             }
             if (action == DOWN) {
                 if (path_length[i+1][j] <= path_length[i][j] + 1)
-                    path_length[i+1][j] = path_length[i][j];
+                    path_length[i+1][j] = path_length[i][j] + 1;
             }
         }
     }
 }
 
 void print(std::vector<std::vector<double>> a) {
+    std::cout << "----------------------------" << std::endl;
+    for (int i = 0; i < a.size(); i++) {
+        for (int j = 0; j < a[i].size(); j++) {
+            std::cout << "| " << a[i][j] << " ";
+        }
+        std::cout << "|" << std::endl;
+        std::cout << "----------------------------" << std::endl;
+    }
+}
+
+void print(std::vector<std::vector<int>> a) {
     std::cout << "----------------------------" << std::endl;
     for (int i = 0; i < a.size(); i++) {
         for (int j = 0; j < a[i].size(); j++) {
@@ -443,7 +404,7 @@ int main() {
 
     processInput("/home/ironman/grid-world-rl/inputs.txt");
 
-    iterations = 17;
+    iterations = 30;
 
     cout << "iterations: " << iterations << endl;
     cout << "grid size: " << grid_size << endl;
@@ -454,6 +415,12 @@ int main() {
     action_transition_matrix.resize(grid_size*grid_size, std::vector<int>(4));
     path_length.resize(grid_size, std::vector<int>(grid_size));
     initialize_action_matrix(action_transition_matrix);
+
+    for (int i = 0; i < grid_size; i++) {
+        for (int j = 0; j < grid_size; j++) {
+            path_length[i][j] = i+j;
+        }
+    }
 
     cout << "Intialised the action matrix successfully" << endl;
 
@@ -507,6 +474,10 @@ int main() {
         find_path(mat, path); // to find the optimal path by acting greedy on the value function
 
         cout << "Path Found" << endl;
+
+        cout << "Path size: " << path.size() << endl;
+
+        print(path_length);
 
         if (f.is_open()) {
             f << grid_size << endl;
