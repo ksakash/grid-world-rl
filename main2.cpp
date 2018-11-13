@@ -45,7 +45,7 @@ double number_generator(double mean, double sigma) { // generates number accordi
 void iterate(vector<vector<double>>& mat_prev, vector<vector<double>>& mat_next) {
     
     double gamma = 0.63; // dicount factor
-    double beta = 0.1; // path length factor
+    double beta = 0.10; // path length factor
 
     double v1 = 0;
     double v2 = 0;
@@ -300,27 +300,27 @@ void initialize_action_matrix(std::vector<std::vector<int>>& action_transition_m
                 if (corner_element) {
                     if (i == 0 && j == 0) {
                         action_transition_matrix[grid_size*i + j][UP] = 0;
-                        action_transition_matrix[grid_size*i + j][DOWN] = 0;
+                        action_transition_matrix[grid_size*i + j][DOWN] = 1;
                         action_transition_matrix[grid_size*i + j][RIGHT] = 1;
                         action_transition_matrix[grid_size*i + j][LEFT] = 0;
                     }
                     else if (i == 0 && j == grid_size-1) {
                         action_transition_matrix[grid_size*i + j][UP] = 0;
-                        action_transition_matrix[grid_size*i + j][DOWN] = 0;
+                        action_transition_matrix[grid_size*i + j][DOWN] = 1;
                         action_transition_matrix[grid_size*i + j][RIGHT] = 0;
                         action_transition_matrix[grid_size*i + j][LEFT] = 0;
                     }
                     else if (i == grid_size-1 && j == 0) {
-                        action_transition_matrix[grid_size*i + j][UP] = 1;
-                        action_transition_matrix[grid_size*i + j][DOWN] = 0;
-                        action_transition_matrix[grid_size*i + j][RIGHT] = 1;
-                        action_transition_matrix[grid_size*i + j][LEFT] = 0;
-                    }
-                    else if (i == grid_size-1 && j == grid_size-1) {
-                        action_transition_matrix[grid_size*i + j][UP] = 1;
+                        action_transition_matrix[grid_size*i + j][UP] = 0;
                         action_transition_matrix[grid_size*i + j][DOWN] = 0;
                         action_transition_matrix[grid_size*i + j][RIGHT] = 0;
                         action_transition_matrix[grid_size*i + j][LEFT] = 0;
+                    }
+                    else if (i == grid_size-1 && j == grid_size-1) {
+                        action_transition_matrix[grid_size*i + j][UP] = 0;
+                        action_transition_matrix[grid_size*i + j][DOWN] = 0;
+                        action_transition_matrix[grid_size*i + j][RIGHT] = 0;
+                        action_transition_matrix[grid_size*i + j][LEFT] = 1;
                     }
                 }
                 else {
@@ -418,7 +418,7 @@ int main() {
 
     for (int i = 0; i < grid_size; i++) {
         for (int j = 0; j < grid_size; j++) {
-            path_length[i][j] = abs(i-9) + abs(j);
+            path_length[i][j] = abs(i-start_i) + abs(j-start_j);
         }
     }
 
@@ -464,7 +464,7 @@ int main() {
         std::vector<int> path;
 
         std::ofstream f;
-        f.open("/home/ironman/grid-world-rl/results.txt");
+        f.open("/home/ironman/grid-world-rl/results4.txt");
 
         cout << "Initialised the action matrix again" << endl;
 
