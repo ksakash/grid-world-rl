@@ -464,7 +464,7 @@ int main() {
         std::vector<int> path;
 
         std::ofstream f;
-        f.open("/home/ironman/grid-world-rl/results4.txt");
+        f.open("/home/ironman/grid-world-rl/results0.txt");
 
         cout << "Initialised the action matrix again" << endl;
 
