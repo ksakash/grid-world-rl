@@ -21,7 +21,6 @@ struct grid_element {
 };
 
 int grid_size;
-int episode_count;
 int iterations;
 
 int start_i;
@@ -29,6 +28,8 @@ int start_j;
 
 int target_i;
 int target_j;
+
+int episode_count;
 
 std::default_random_engine generator; // random number generator
 std::vector<std::vector<double>> mean_estimate; // estimate of the mean of all the grid elements
@@ -216,13 +217,15 @@ void stringToInt (string s, std::vector<double>& arr) {
     }
 }
 
-void processInput (string str) { // for taking processing from a file
+void processInput (string input, string result) { // for taking processing from a file
 
     string line;
-    ifstream myfile (str);
-    if (myfile.is_open())
+    ifstream inputFile (input);
+    ifstream resultFile (result);
+
+    if (inputFile.is_open())
     {
-        getline (myfile, line);
+        getline (inputFile, line);
         std::vector<double> numbers;
         stringToInt(line, numbers);
         grid_size = numbers[0];
@@ -231,44 +234,61 @@ void processInput (string str) { // for taking processing from a file
         grid.resize(grid_size);
 
         numbers.clear();
-        getline (myfile, line);
+        getline (inputFile, line);
         stringToInt(line, numbers);
         start_i = numbers[0];
         start_j = numbers[1];
 
         numbers.clear();
-        getline (myfile, line);
+        getline (inputFile, line);
         stringToInt(line, numbers);
         target_i = numbers[0];
         target_j = numbers[1];
 
         numbers.clear();
-        getline (myfile, line);
+        getline (inputFile, line);
         stringToInt(line, numbers);
-        episode_count = numbers[0];
+        iterations = numbers[0];
 
         for (int i = 0; i < grid_size; i++) {
             numbers.clear();
-            getline (myfile, line);
+            getline (inputFile, line);
             stringToInt(line, numbers);
             grid[i].resize(grid_size);     
             for (int j = 0; j < grid_size; j++) {
                 grid[i][j].mean = numbers[j];
+                grid[i][j].sigma = numbers[j]/3;
             }
         }
+
+        inputFile.close();
+    }
+    else { cout << "Unable to open input file" << endl; } 
+
+    if (resultFile.is_open()) {
+        std::vector<double> numbers;
+
+        getline(resultFile, line);
+        getline(resultFile, line);
+        getline(resultFile, line);
+
+        numbers.clear();
+        getline(resultFile, line);
+        stringToInt(line, numbers);
+
+        episode_count = numbers[0];
 
         for (int i = 0; i < grid_size; i++) {
+            mean_estimate[i].resize(grid_size);
             numbers.clear();
-            getline (myfile, line);
+            getline (resultFile, line);
             stringToInt(line, numbers);
             for (int j = 0; j < grid_size; j++) {
-                grid[i][j].sigma = numbers[j];
+                mean_estimate[i][j] = numbers[j];
             }
         }
-
-        myfile.close();
     }
-    else cout << "Unable to open file"; 
+    else { cout << "Unable to open result file" << endl; }
 
     cout << "Inputs processed successfully" << endl;
 }
@@ -402,9 +422,7 @@ void initialize_action_matrix(std::vector<std::vector<int>>& action_transition_m
 
 int main() {
 
-    processInput("/home/ironman/grid-world-rl/inputs.txt");
-
-    iterations = 30;
+    processInput("/home/ironman/grid-world-rl/inputs.txt", "/home/ironman/grid-world-rl/results0.txt");
 
     cout << "iterations: " << iterations << endl;
     cout << "grid size: " << grid_size << endl;
@@ -424,75 +442,72 @@ int main() {
 
     cout << "Intialised the action matrix successfully" << endl;
 
-    int count = 0;
-
     std::vector<std::vector<double>> mat_prev(grid_size, std::vector<double>(grid_size));
     std::vector<std::vector<double>> mat_next(grid_size, std::vector<double>(grid_size));
 
-    mean_estimate.resize(grid_size);
     value_function.resize(grid_size, std::vector<double>(grid_size));
     
-    for (int k = 0; k < episode_count; k++) {
-        count++;
+    episode_count++;
 
+    for (int i = 0; i < grid_size; i++) {
+        for (int j = 0; j < grid_size; j++) {
+            grid[i][j].value = number_generator(grid[i][j].mean, grid[i][j].sigma);
+        }
+    }
+
+    for (int i = 0; i < grid_size; i++) {
+        for (int j = 0; j < grid_size; j++) {
+            mean_estimate[i][j] = mean_estimate[i][j] + (grid[i][j].value - mean_estimate[i][j])/episode_count;
+        }
+    }
+
+    value_function.resize(grid_size, std::vector<double>(grid_size));
+    
+    for (int j = 0; j < iterations; j++) {
+        iterate(mat_prev, mat_next);
+        mat_prev = mat_next;
+    }
+
+    cout << "Value function calculated" << endl;
+
+    value_function = mat_prev;
+
+    print(value_function);
+
+    std::vector<int> path;
+
+    std::ofstream f;
+    f.open("/home/ironman/grid-world-rl/results0.txt");
+
+    cout << "Initialised the action matrix again" << endl;
+
+    std::vector<std::vector<int>> mat(grid_size, std::vector<int>(grid_size));
+    find_path(mat, path); // to find the optimal path by acting greedy on the value function
+
+    cout << "Path Found" << endl;
+
+    cout << "Path size: " << path.size() << endl;
+
+    print(path_length);
+
+    if (f.is_open()) {
+        f << grid_size << endl;
+        f << start_i << " " << start_j << endl;
+        f << target_i << " " << target_j << endl;
+        f << episode_count << endl;
         for (int i = 0; i < grid_size; i++) {
             for (int j = 0; j < grid_size; j++) {
-                grid[i][j].value = number_generator(grid[i][j].mean, grid[i][j].sigma);
-            }
-        }
-
-        for (int i = 0; i < grid_size; i++) {
-            mean_estimate[i].resize(grid_size);
-            for (int j = 0; j < grid_size; j++) {
-                mean_estimate[i][j] = mean_estimate[i][j] + (grid[i][j].value - mean_estimate[i][j])/count;
-            }
-        }
-
-        value_function.resize(grid_size, std::vector<double>(grid_size));
-        
-        for (int j = 0; j < iterations; j++) {
-            iterate(mat_prev, mat_next);
-            mat_prev = mat_next;
-        }
-
-        cout << "Value function calculated" << endl;
-
-        value_function = mat_prev;
-
-        print(value_function);
-
-        std::vector<int> path;
-
-        std::ofstream f;
-        f.open("/home/ironman/grid-world-rl/results0.txt");
-
-        cout << "Initialised the action matrix again" << endl;
-
-        std::vector<std::vector<int>> mat(grid_size, std::vector<int>(grid_size));
-        find_path(mat, path); // to find the optimal path by acting greedy on the value function
-
-        cout << "Path Found" << endl;
-
-        cout << "Path size: " << path.size() << endl;
-
-        print(path_length);
-
-        if (f.is_open()) {
-            f << grid_size << endl;
-            for (int i = 0; i < grid_size; i++) {
-                for (int j = 0; j < grid_size; j++) {
-                    f << mean_estimate[i][j] << " "; 
-                }
-                f << endl;
-            }
-            for (int i = 0; i < path.size(); i++) {
-                f << path[i] << " ";
+                f << mean_estimate[i][j] << " "; 
             }
             f << endl;
         }
-        else {
-            cout << "unable to open the file" << endl;
+        for (int i = 0; i < path.size(); i++) {
+            f << path[i] << " ";
         }
+        f << endl;
+    }
+    else {
+        cout << "unable to open the file" << endl;
     }
     return 0;
 }
