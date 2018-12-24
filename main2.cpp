@@ -23,9 +23,14 @@ struct grid_element {
 int grid_size;
 int iterations;
 
+int argv_s_i[] = {0, 9, 0, 9, 0};
+int argv_s_j[] = {0, 0, 9, 9, 0};
+
+int argv_t_i[] = {9, 0, 9, 0, 9};
+int argv_t_j[] = {9, 9, 0, 0, 0};
+
 int start_i;
 int start_j;
-
 int target_i;
 int target_j;
 
@@ -40,7 +45,15 @@ std::vector<std::vector<int>> path_length;
 
 double number_generator(double mean, double sigma) { // generates number according to the given gaussian distribution
 	std::normal_distribution<double> distribution(mean, sigma);
-    return distribution(generator);   
+    double temp;
+
+    for (int i = 0; i < episode_count; i++) {
+        temp = distribution(generator);
+    }
+    if (temp <= 0) {
+        return 0.1;
+    }
+    return temp;
 }
 
 void iterate(vector<vector<double>>& mat_prev, vector<vector<double>>& mat_next) {
@@ -236,18 +249,6 @@ void processInput (string input, string result) { // for taking processing from 
         numbers.clear();
         getline (inputFile, line);
         stringToInt(line, numbers);
-        start_i = numbers[0];
-        start_j = numbers[1];
-
-        numbers.clear();
-        getline (inputFile, line);
-        stringToInt(line, numbers);
-        target_i = numbers[0];
-        target_j = numbers[1];
-
-        numbers.clear();
-        getline (inputFile, line);
-        stringToInt(line, numbers);
         iterations = numbers[0];
 
         for (int i = 0; i < grid_size; i++) {
@@ -268,11 +269,6 @@ void processInput (string input, string result) { // for taking processing from 
     if (resultFile.is_open()) {
         std::vector<double> numbers;
 
-        getline(resultFile, line);
-        getline(resultFile, line);
-        getline(resultFile, line);
-
-        numbers.clear();
         getline(resultFile, line);
         stringToInt(line, numbers);
 
@@ -420,9 +416,23 @@ void initialize_action_matrix(std::vector<std::vector<int>>& action_transition_m
     }
 }
 
-int main() {
+int main(int argc, char** argv) {
 
-    processInput("/home/ironman/grid-world-rl/inputs.txt", "/home/ironman/grid-world-rl/results0.txt");
+    string inputFile = "../inputs.txt";
+    string resultFile = "../results.txt";
+    processInput(inputFile, resultFile);
+
+    if (argc < 2) {
+        cout << "Invalid Input" << endl;
+        return 1;
+    }
+    int index = atoi(argv[1]);
+
+    start_i = argv_s_i[index-1];
+    start_j = argv_s_j[index-1];
+
+    target_i = argv_t_i[index-1];
+    target_j = argv_t_j[index-1];
 
     cout << "iterations: " << iterations << endl;
     cout << "grid size: " << grid_size << endl;
@@ -477,7 +487,7 @@ int main() {
     std::vector<int> path;
 
     std::ofstream f;
-    f.open("/home/ironman/grid-world-rl/results0.txt");
+    f.open(resultFile);
 
     cout << "Initialised the action matrix again" << endl;
 
@@ -491,10 +501,10 @@ int main() {
     print(path_length);
 
     if (f.is_open()) {
+        f << episode_count << endl;
         f << grid_size << endl;
         f << start_i << " " << start_j << endl;
         f << target_i << " " << target_j << endl;
-        f << episode_count << endl;
         for (int i = 0; i < grid_size; i++) {
             for (int j = 0; j < grid_size; j++) {
                 f << mean_estimate[i][j] << " "; 
