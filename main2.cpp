@@ -274,6 +274,10 @@ void processInput (string input, string result) { // for taking processing from 
 
         episode_count = numbers[0];
 
+        getline(resultFile, line);
+        getline(resultFile, line);
+        getline(resultFile, line);
+
         for (int i = 0; i < grid_size; i++) {
             mean_estimate[i].resize(grid_size);
             numbers.clear();
