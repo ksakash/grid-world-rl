@@ -15,6 +15,12 @@ double ThrustConversionFnc(int pwm) {
 
 int main() {
     int a = ThrustConversionFnc(1800);
-    cout << "a: " << a << endl;
 
+    cout << "It is a game where you have to try to get as much score as possible";
+    cout << "There are certain rules to the game";
+    cout << "1. There is a timer which means you have to complete the task within a certain period of time.";
+    cout << "2. You can't go out of the boundaries.";
+    cout << "3. You can't move through one grid twice.";
+
+    return 0;
 }
