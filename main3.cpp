@@ -83,6 +83,10 @@ void iterate(vector<vector<double>>& mat_prev, vector<vector<double>>& mat_next)
                 }
             }
             mat_next[i][j] = mean_estimate[i][j] - beta*path_length[i][j] + gamma*max;
+
+            if (mat_next[i][j] < 0) {
+                mat_next[i][j] = 0.01;
+            }
             
             if (action == LEFT) {
                 if (path_length[i][j-1] <= path_length[i][j] + 1)
