@@ -22,6 +22,14 @@ int start_j;
 int target_i;
 int target_j;
 
+int argv_s_i[] = {0, 9, 0, 9, 0};
+int argv_s_j[] = {0, 0, 9, 9, 0};
+
+int argv_t_i[] = {9, 0, 9, 0, 9};
+int argv_t_j[] = {9, 9, 0, 0, 0};
+
+int scenario;
+
 int episode_count;
 
 std::vector<std::vector<double>> mean_estimate; // estimate of the mean of all the grid elements
@@ -216,14 +224,7 @@ void processInput (string input) { // for taking processing from a file
 
         getline (inputFile, line);
         stringToInt(line, numbers);
-        start_i = numbers[0];
-        start_j = numbers[1];
-
-        numbers.clear();
-        getline (inputFile, line);
-        stringToInt(line, numbers);
-        target_i = numbers[0];
-        target_j = numbers[1];
+        scenario = numbers[0];
 
         for (int i = 0; i < grid_size; i++) {
             numbers.clear();
@@ -373,6 +374,12 @@ int main(int argc, char** argv) {
     string inputFile = "../alt_inputs.txt";
     string resultFile = "../path.txt";
     processInput(inputFile);
+
+    start_i = argv_s_i[scenario-1];
+    start_j = argv_s_j[scenario-1];
+
+    target_i = argv_t_i[scenario-1];
+    target_j = argv_t_j[scenario-1];
 
     iterations = 30;
     grid_size = 10;
